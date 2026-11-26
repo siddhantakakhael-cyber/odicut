@@ -5,6 +5,9 @@ on:
     branches: ["arena/**", "main"]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -42,25 +45,29 @@ jobs:
               if ($r.ok) { $health = $true; break }
             } catch {}
           }
-          Write-Host "=== hub.log ==="
-          Get-Content "$env:APPDATA/OpenCodeHub/hub.log" -Tail 60 -ErrorAction SilentlyContinue
-          if (-not $health) {
-            Write-Host "HEALTH CHECK FAILED"
-            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
-            exit 1
-          }
-          # bonus: verify the bundled OpenCode binary boots (soft check)
+          # verify the bundled OpenCode binary actually boots in the background
           $running = $false
-          for ($i = 0; $i -lt 45; $i++) {
-            Start-Sleep -Seconds 2
-            try {
-              $s = Invoke-RestMethod "http://127.0.0.1:8799/api/state"
-              if ($s.running) { $running = $true; break }
-            } catch {}
+          if ($health) {
+            for ($i = 0; $i -lt 60; $i++) {
+              Start-Sleep -Seconds 2
+              try {
+                $s = Invoke-RestMethod "http://127.0.0.1:8799/api/state"
+                if ($s.running) { $running = $true; break }
+              } catch {}
+            }
           }
-          Write-Host "Bundled OpenCode running: $running"
+          $log = Get-Content "$env:APPDATA/OpenCodeHub/hub.log" -Tail 80 -ErrorAction SilentlyContinue
+          $report = @()
+          $report += "health_ok=$health"
+          $report += "opencode_running=$running"
+          $report += "exe_exists=$(Test-Path $exe)"
+          $report += "---- hub.log (tail) ----"
+          $report += $log
+          $report | Set-Content -Path ci-smoke-result.txt -Encoding utf8
+          Write-Host ($report -join "`n")
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
-          if (-not $running) { Write-Host "WARNING: bundled OpenCode did not report running (see hub.log)" }
+          if (-not $health) { Write-Host "FAIL: app health"; exit 1 }
+          if (-not $running) { Write-Host "FAIL: bundled OpenCode did not boot"; exit 1 }
 
       - name: Package artifact
         shell: pwsh
@@ -68,9 +75,22 @@ jobs:
           Compress-Archive -Path dist/OpenCodeHub/* -DestinationPath OpenCodeHub-windows-x64.zip
           $mb = [math]::Round((Get-Item OpenCodeHub-windows-x64.zip).Length / 1MB, 1)
           Write-Host "Artifact: OpenCodeHub-windows-x64.zip ($mb MB)"
+          Add-Content -Path ci-smoke-result.txt -Value "artifact_mb=$mb"
 
       - uses: actions/upload-artifact@v4
         with:
           name: OpenCodeHub-windows-x64
           path: OpenCodeHub-windows-x64.zip
           if-no-files-found: error
+
+      - name: Record smoke result back to repo
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path ci-smoke-result.txt) {
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add ci-smoke-result.txt
+            git commit -m "CI: Windows exe smoke result [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          }
