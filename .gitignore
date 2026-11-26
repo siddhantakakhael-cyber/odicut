@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# PyInstaller
+build/
+dist/
+*.manifest
+
+# bundled binary (fetched by CI, ~100MB, platform-specific)
+vendor/
+
+# local config / logs (never commit keys)
+*.log
+config.json
+opencode.json
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

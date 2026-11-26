@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenCode Hub</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="logo">⌬</span>
+    <div>
+      <h1>OpenCode Hub</h1>
+      <span class="sub">free-model coding agent</span>
+    </div>
+  </div>
+  <div class="status">
+    <span id="oc-status" class="pill off">● OpenCode: stopped</span>
+    <span id="cur-model" class="pill model">no model</span>
+  </div>
+  <div class="actions">
+    <button id="btn-new" title="New chat">✚ New</button>
+    <button id="btn-providers" title="Providers & keys">🔌 Providers</button>
+    <button id="btn-settings" title="Settings">⚙ Settings</button>
+    <button id="btn-logs" title="Toggle logs">🧾 Logs</button>
+  </div>
+</header>
+
+<main>
+  <div id="chat"></div>
+  <div id="empty" class="empty">
+    <div class="big">⌬</div>
+    <h2>OpenCode, GUI mein — free models ke saath</h2>
+    <p>Pehle <b>🔌 Providers</b> me kisi free provider ki API key add karo
+       (Gemini / Groq / OpenRouter / Mistral…). Phir yahan coding task likho.</p>
+    <p class="hint">Free model rate-limit hone par app <b>automatically doosre free model</b>
+       pe switch kar deta hai.</p>
+    <div class="examples">
+      <button class="ex">Is folder ke code ka structure samjhao</button>
+      <button class="ex">Ek Python CLI todo app banao</button>
+      <button class="ex">Is project me tests likho</button>
+    </div>
+  </div>
+  <div id="inputbar">
+    <textarea id="input" rows="2" placeholder="Coding task likho… (Enter bhejne ke liye, Shift+Enter nayi line)"></textarea>
+    <button id="send">Send ➤</button>
+  </div>
+</main>
+
+<section id="logdrawer" class="hidden">
+  <div class="loghead">
+    <span>EXECUTION LOG</span>
+    <div>
+      <button id="log-clear">Clear</button>
+      <button id="log-copy">Copy</button>
+    </div>
+  </div>
+  <pre id="logtext"></pre>
+</section>
+
+<!-- Providers modal -->
+<div id="providers-modal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h2>🔌 Free Providers</h2><button class="close" data-close>✕</button></div>
+    <p class="muted">Kisi provider ki free API key add karo. Jitne zyada providers, utna reliable auto-switch.</p>
+    <div id="preset-list"></div>
+    <h3 class="sect">Custom OpenAI-compatible provider</h3>
+    <div class="custom-form">
+      <input id="c-id" placeholder="provider id (e.g. mylab)">
+      <input id="c-name" placeholder="Display name">
+      <input id="c-base" placeholder="Base URL (https://…/v1)">
+      <input id="c-models" placeholder="Models (comma separated)">
+      <input id="c-key" type="password" placeholder="API key">
+      <button id="c-add">Add custom provider</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div id="settings-modal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head"><h2>⚙ Settings</h2><button class="close" data-close>✕</button></div>
+    <label>Workspace folder (OpenCode yahan kaam karega)
+      <input id="s-workspace" placeholder="C:\Users\you\project">
+    </label>
+    <label>OpenCode binary path (khali = auto-download)
+      <input id="s-ocpath" placeholder="khali chhod do toh auto-install hoga">
+    </label>
+    <div class="row">
+      <label class="chk"><input id="s-auto" type="checkbox"> Auto-switch free models</label>
+    </div>
+    <div class="row2">
+      <label>Cooldown (sec)<input id="s-cooldown" type="number" min="5" max="600"></label>
+      <label>Max attempts<input id="s-attempts" type="number" min="1" max="12"></label>
+    </div>
+    <div class="row2">
+      <label>Hub port<input id="s-port" type="number"></label>
+      <label>OpenCode port<input id="s-ocport" type="number"></label>
+    </div>
+    <div class="modal-foot">
+      <button id="s-save" class="primary">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="hidden"></div>
+<script src="/app.js"></script>
+</body>
+</html>

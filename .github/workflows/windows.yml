@@ -1,0 +1,76 @@
+name: Windows EXE
+
+on:
+  push:
+    branches: ["arena/**", "main"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-build.txt
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Fetch OpenCode Windows binary
+        run: python scripts/fetch_opencode.py --pkg opencode-windows-x64 --dest vendor/opencode.exe
+
+      - name: Build EXE (PyInstaller)
+        run: pyinstaller ochub.spec --noconfirm --clean
+
+      - name: Smoke test the EXE
+        shell: pwsh
+        run: |
+          $exe = "dist/OpenCodeHub/OpenCodeHub.exe"
+          $p = Start-Process -FilePath $exe -ArgumentList "--server-only","--port","8799" -PassThru
+          $health = $false
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 2
+            try {
+              $r = Invoke-RestMethod "http://127.0.0.1:8799/api/health"
+              if ($r.ok) { $health = $true; break }
+            } catch {}
+          }
+          Write-Host "=== hub.log ==="
+          Get-Content "$env:APPDATA/OpenCodeHub/hub.log" -Tail 60 -ErrorAction SilentlyContinue
+          if (-not $health) {
+            Write-Host "HEALTH CHECK FAILED"
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            exit 1
+          }
+          # bonus: verify the bundled OpenCode binary boots (soft check)
+          $running = $false
+          for ($i = 0; $i -lt 45; $i++) {
+            Start-Sleep -Seconds 2
+            try {
+              $s = Invoke-RestMethod "http://127.0.0.1:8799/api/state"
+              if ($s.running) { $running = $true; break }
+            } catch {}
+          }
+          Write-Host "Bundled OpenCode running: $running"
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+          if (-not $running) { Write-Host "WARNING: bundled OpenCode did not report running (see hub.log)" }
+
+      - name: Package artifact
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/OpenCodeHub/* -DestinationPath OpenCodeHub-windows-x64.zip
+          $mb = [math]::Round((Get-Item OpenCodeHub-windows-x64.zip).Length / 1MB, 1)
+          Write-Host "Artifact: OpenCodeHub-windows-x64.zip ($mb MB)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OpenCodeHub-windows-x64
+          path: OpenCodeHub-windows-x64.zip
+          if-no-files-found: error
