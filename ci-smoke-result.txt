@@ -1,0 +1,8 @@
+health_ok=True
+opencode_running=True
+exe_exists=True
+---- hub.log (tail) ----
+2026-11-26 11:17:04 [OK] OpenCode Hub UI @ http://127.0.0.1:8799
+2026-11-26 11:17:04 [INFO] OpenCode config ready (0 custom providers, model=auto)
+2026-11-26 11:17:06 [CMD] C:\Users\runneradmin\AppData\Roaming\OpenCodeHub\opencode\opencode.exe serve --port 4096 --hostname 127.0.0.1 --print-logs --log-level INFO
+artifact_mb=92.7
